@@ -30,7 +30,7 @@ def get_img(local_path, web_fallback):
 DRIVER_IMAGES = {
     "norris": get_img("imagesf1/norris.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"),
     "piastri": get_img("imagesf1/piastri.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png"),
-    "max_verstappen": get_img("imagesf1/max_verstappen.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png"),
+    "verstappen": get_img("imagesf1/verstappen.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png"),
     "hadjar": get_img("imagesf1/hadjar.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png"),
     "leclerc": get_img("imagesf1/leclerc.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png"),
     "hamilton": get_img("imagesf1/hamilton.jpg", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png"),
@@ -54,7 +54,7 @@ DRIVER_IMAGES = {
 
 # --- THE MISSING DICTIONARY RESTORED ---
 DRIVER_NUMBERS = {
-    "max_verstappen": 1, "perez": 11, "norris": 4, "piastri": 81, "leclerc": 16, "hamilton": 44, "russell": 63, "antonelli": 12,
+    "verstappen": 1, "perez": 11, "norris": 4, "piastri": 81, "leclerc": 16, "hamilton": 44, "russell": 63, "antonelli": 12,
     "alonso": 14, "stroll": 18, "sainz": 55, "albon": 23, "gasly": 10, "colapinto": 43, "hulkenberg": 27, "bortoleto": 5, "ocon": 31,
     "bearman": 87, "lawson": 30, "bottas": 77
 }
@@ -75,7 +75,7 @@ TEAM_LOGOS = {
 
 FULL_GRID_2026 = {
     "McLaren": {"drivers": ["norris", "piastri"], "car": "imagesf1/mclaren.jpg"},
-    "Red Bull": {"drivers": ["max_verstappen", "hadjar"], "car": "imagesf1/red_bull.jpg"},
+    "Red Bull": {"drivers": ["verstappen", "hadjar"], "car": "imagesf1/red_bull.jpg"},
     "Ferrari": {"drivers": ["leclerc", "hamilton"], "car": "imagesf1/ferrari.jpg"},
     "Mercedes": {"drivers": ["russell", "antonelli"], "car": "imagesf1/mercedes.jpg"},
     "Aston Martin": {"drivers": ["alonso", "stroll"], "car": "imagesf1/aston_martin.jpg"},
@@ -88,7 +88,7 @@ FULL_GRID_2026 = {
 }
 
 PLAYERS_CONFIG = {
-    "Richie": {"drivers": ["max_verstappen", "perez"], "constructor": "audi", "penalty": 0},
+    "Richie": {"drivers": ["verstappen", "perez"], "constructor": "audi", "penalty": 0},
     "Rickster": {"drivers": ["bottas", "leclerc"], "constructor": "aston_martin", "penalty": -5},
     "Yoshi": {"drivers": ["norris", "stroll"], "constructor": "ferrari", "penalty": -25},
     "Trip": {"drivers": ["lawson", "hadjar"], "constructor": "red_bull", "penalty": -5},
