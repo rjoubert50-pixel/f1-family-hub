@@ -289,41 +289,16 @@ with t_board:
         elif gap < 10 and df.iloc[0]['TOTAL'] > 0: st.warning(f"⚔️ **CLOSE FIGHT:** {leader} is under pressure! Gap: only {gap} pts")
     st.dataframe(df, use_container_width=True, hide_index=True, column_config={"TOTAL": st.column_config.NumberColumn("TOTAL SCORE 🏆", format="%d")})
 
-# --- UPDATED GARAGE UI (SLEEK VIEW) ---
 with t_garage:
-    st.header("Player Garages & Technical Specs")
+    st.header("Player Garages")
     for player, cfg in PLAYERS_CONFIG.items():
         with st.expander(f"🛠️ GARAGE BAY: {player.upper()}"):
-            # Adjusted column ratios for a more compact horizontal look
-            col_d1, col_d2, col_chassis = st.columns([1, 1, 1.2])
-            
-            with col_d1:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                d1 = cfg['drivers'][0]
-                # We set width=180 to keep the headshots neat and small
-                safe_st_image(DRIVER_IMAGES.get(d1, ""), caption=f"D1: {d1.upper()}", width=180)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-            with col_d2:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                d2 = cfg['drivers'][1]
-                safe_st_image(DRIVER_IMAGES.get(d2, ""), caption=f"D2: {d2.upper()}", width=180)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
+            col_d1, col_d2, col_chassis = st.columns([1, 1, 2])
+            with col_d1: safe_st_image(DRIVER_IMAGES.get(cfg['drivers'][0], ""), caption=f"D1: {cfg['drivers'][0].upper()}")
+            with col_d2: safe_st_image(DRIVER_IMAGES.get(cfg['drivers'][1], ""), caption=f"D2: {cfg['drivers'][1].upper()}")
             with col_chassis:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                st.write(f"#### CHASSIS: {cfg['constructor'].upper()}")
-                
-                # Logic to find the car image from FULL_GRID_2026
                 team_key = next((k for k in FULL_GRID_2026 if k.lower().replace("_"," ") == cfg['constructor'].lower().replace("_"," ")), None)
-                if team_key:
-                    car_img = FULL_GRID_2026[team_key]['car']
-                    # Set width=280 for the car to keep it proportional but not massive
-                    safe_st_image(get_img(car_img, ""), caption=f"{team_key} Livery", width=280)
-                else:
-                    logo = TEAM_LOGOS.get(cfg['constructor'], "")
-                    safe_st_image(logo, caption="Constructor Logo", width=150)
-                st.markdown('</div>', unsafe_allow_html=True)
+                if team_key: safe_st_image(get_img(FULL_GRID_2026[team_key]['car'], ""), caption=f"{team_key} Livery")
 
 with t_next:
     if cal_data:
@@ -361,14 +336,37 @@ with t_next:
                     st.markdown('</div>', unsafe_allow_html=True)
                 except: st.info("Historical data not available.")
 
+# --- UPDATED GRID UI (MATCHES GARAGE STYLE) ---
 with t_grid:
-    st.header("The 2026 Grid")
+    st.header("The 2026 World Championship Grid")
+    
+    # Loop through all 11 teams for 2026
     for team, data in FULL_GRID_2026.items():
-        with st.expander(f"🏎️ {team.upper()}"):
-            col_car, col_d1, col_d2 = st.columns([2, 1, 1])
-            safe_st_image(get_img(data['car'], ""), caption=f"{team} Livery")
-            safe_st_image(DRIVER_IMAGES.get(data['drivers'][0], ""), width=150)
-            safe_st_image(DRIVER_IMAGES.get(data['drivers'][1], ""), width=150)
+        with st.expander(f"🏎️ {team.upper()} ENTRY"):
+            # Using the same [1, 1, 1.2] ratio as the Garage tab
+            col_d1, col_d2, col_car = st.columns([1, 1, 1.2])
+            
+            with col_d1:
+                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
+                d1_id = data['drivers'][0]
+                # Consistency: width=180 for driver headshots
+                safe_st_image(DRIVER_IMAGES.get(d1_id, ""), caption=f"DRIVER: {d1_id.replace('_',' ').upper()}", width=180)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            with col_d2:
+                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
+                d2_id = data['drivers'][1]
+                safe_st_image(DRIVER_IMAGES.get(d2_id, ""), caption=f"DRIVER: {d2_id.replace('_',' ').upper()}", width=180)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            with col_car:
+                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
+                st.write(f"#### {team.upper()} CHALLENGER")
+                # Car Image (Local check with Web Fallback)
+                car_img_path = get_img(data['car'], "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/team-car-photos-16x9/2024/mclaren.png")
+                # Consistency: width=280 for the car livery
+                safe_st_image(car_img_path, caption=f"2026 Livery", width=280)
+                st.markdown('</div>', unsafe_allow_html=True)
 
 with t_live:
     st.header("📡 LIVE PIT WALL TELEMETRY")
