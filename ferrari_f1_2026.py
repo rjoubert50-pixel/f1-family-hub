@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. ASSETS & CONFIG ---
-st.set_page_config(page_title="F1 Family Hub", layout="wide", page_icon="🏎️")
+st.set_page_config(page_title="Joubert F1 Hub", layout="wide", page_icon="🏎️")
 st_autorefresh(interval=30000, key="f1_refresh")
 
 # --- UNIVERSAL SAFE IMAGE DISPLAY FUNCTION ---
@@ -95,6 +95,7 @@ PLAYERS_CONFIG = {
     "Josh": {"drivers": ["piastri", "hulkenberg"], "constructor": "haas", "penalty": 0},
     "Ruben": {"drivers": ["antonelli", "albon"], "constructor": "mercedes", "penalty": -5},
     "Clive": {"drivers": ["sainz", "russell"], "constructor": "racing_bulls", "penalty": 0},
+    "Andy": {"drivers": ["hamilton", "bearman"], "constructor": "mclaren", "penalty": 0},
 }
 
 # --- 2. THE CSS ---
@@ -274,7 +275,7 @@ with st.sidebar:
 ticker_content = get_driver_standings_ticker(selected_year)
 st.markdown(f'<div class="ticker-wrap"><div class="ticker">{ticker_content} {ticker_content}</div></div>', unsafe_allow_html=True)
 
-st.title("🏎️ F1 FAMILY HUB")
+st.title("🏎️ Joubert F1 HUB")
 t_board, t_garage, t_next, t_grid, t_live, t_news = st.tabs(["🏆 CHAMPIONSHIP", "🛠️ GARAGES", "📅 RACE CALENDAR", "🏎️ THE GRID", "📡 LIVE TELEMETRY", "📰 NEWS"])
 
 with t_board:
