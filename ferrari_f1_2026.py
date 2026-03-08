@@ -77,6 +77,7 @@ PLAYERS_CONFIG = {
     "Josh": {"drivers": ["piastri", "hulkenberg"], "constructor": "haas", "penalty": 0},
     "Ruben": {"drivers": ["antonelli", "albon"], "constructor": "mercedes", "penalty": -5},
     "Clive": {"drivers": ["sainz", "russell"], "constructor": "racing_bulls", "penalty": 0},
+    "Andy": {"drivers": ["hamilton", "bearman"], "constructor": "mclaren", "penalty": 0},
 }
 
 # --- 2. THE CSS ---
