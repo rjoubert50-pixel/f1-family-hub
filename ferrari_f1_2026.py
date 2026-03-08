@@ -8,10 +8,9 @@ from streamlit_autorefresh import st_autorefresh
 
 # --- 1. ASSETS & CONFIG ---
 st.set_page_config(page_title="F1 Family Hub", layout="wide", page_icon="🏎️")
-# Refresh every 5 minutes to keep results updated
-st_autorefresh(interval=300000, key="f1_refresh")
+# High-frequency refresh for race day
+st_autorefresh(interval=60000, key="f1_refresh")
 
-# --- UNIVERSAL SAFE IMAGE DISPLAY FUNCTION ---
 def safe_st_image(img_path, caption="", width=None, sidebar=False):
     target = st.sidebar if sidebar else st
     try:
@@ -23,11 +22,10 @@ def safe_st_image(img_path, caption="", width=None, sidebar=False):
         target.error("⚠️ Image Load Fail")
 
 def get_img(local_path, web_fallback):
-    if os.path.exists(local_path):
-        return local_path
+    if os.path.exists(local_path): return local_path
     return web_fallback
 
-# Driver Images (Preserving your .webp/local paths)
+# Driver Images (.webp)
 DRIVER_IMAGES = {
     "norris": get_img("imagesf1/norris.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"),
     "piastri": get_img("imagesf1/piastri.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png"),
@@ -51,6 +49,13 @@ DRIVER_IMAGES = {
     "lindblad": get_img("imagesf1/lindblad.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ARVLIN01_Arvid_Lindblad/arvlin01.png"),
     "perez": get_img("imagesf1/perez.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/S/SERPER01_Sergio_Perez/serper01.png"),
     "bottas": get_img("imagesf1/bottas.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png"),
+}
+
+# Mapping names to F1 Racing Numbers
+DRIVER_NUMBERS = {
+    "max_verstappen": 1, "perez": 11, "norris": 4, "piastri": 81, "leclerc": 16, "hamilton": 44, "russell": 63, "antonelli": 12,
+    "alonso": 14, "stroll": 18, "sainz": 55, "albon": 23, "gasly": 10, "colapinto": 43, "hulkenberg": 27, "bortoleto": 5, "ocon": 31,
+    "bearman": 87, "lawson": 30, "bottas": 77
 }
 
 TEAM_LOGOS = {
@@ -137,18 +142,17 @@ def weather_icon(code):
     if code in [95, 96, 99]: return "⛈️ Thunderstorm"
     return "☁️ Overcast"
 
-@st.cache_data(ttl=3600)
-def fetch_paddock_news():
-    feed = feedparser.parse("https://www.formula1.com/en/latest/all.xml")
-    return [{"title": e.title, "link": e.link, "published": getattr(e, 'published', 'Recent'), "summary": getattr(e, 'summary', '')} for e in feed.entries[:10]]
-
 # --- 4. CALCULATIONS ---
 def get_driver_standings_ticker(year):
     data = fetch_api(f"{year}/driverStandings")
     try:
         standings = data['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']
+        if not standings: raise Exception("Empty")
         return "".join([f'<span class="ticker-item"><span class="ticker-rank">{d["position"]}.</span> {d["Driver"]["familyName"]} ({d["points"]} PTS)</span>' for d in standings])
-    except: return '<span class="ticker-item">Awaiting Season Results</span>'
+    except:
+        # Fallback to Next Race banner if season standings are empty
+        next_r, _ = get_next_race_info(year)
+        return f'<span class="ticker-item">NEXT GRAND PRIX: {next_r["raceName"].upper()} - {next_r["date"]}</span>'
 
 def get_next_race_info(year):
     data = fetch_api(f"{year}")
@@ -159,6 +163,7 @@ def get_next_race_info(year):
         if datetime.strptime(r['date'], '%Y-%m-%d') >= now: return r, i
     return races[-1], len(races)-1
 
+# --- 5. THE ORACLE & SEASON LOGIC ---
 def calculate_oracle_probabilities(next_race, year):
     circuit_id = next_race['Circuit']['circuitId']
     h_data = fetch_api(f"{year-1}/circuits/{circuit_id}/results")
@@ -184,63 +189,76 @@ def calculate_oracle_probabilities(next_race, year):
 @st.cache_data(ttl=60)
 def calculate_season_breakdown(year):
     players = {name: {"driver_pts": 0, "bonus_pts": 0, "penalty": cfg['penalty']} for name, cfg in PLAYERS_CONFIG.items()}
-    d_data = fetch_api(f"{year}/driverStandings")
-    if d_data:
-        try:
-            pts_map = {item['Driver']['driverId']: float(item['points']) for item in d_data['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']}
-            for n, cfg in PLAYERS_CONFIG.items(): players[n]["driver_pts"] = sum([pts_map.get(d, 0) for d in cfg['drivers']])
-        except: pass
+    
+    # Force calculation from all results to ensure "Instant" updates after race
     r_data = fetch_api(f"{year}/results")
     if r_data:
         try:
             for race in r_data['MRData']['RaceTable']['Races']:
                 res = race['Results']
-                fl = next((r['Driver']['driverId'] for r in res if r.get('FastestLap', {}).get('rank') == "1"), "")
-                t_wk = {r['Constructor']['constructorId']: 0 for r in res}
-                for r in res: t_wk[r['Constructor']['constructorId']] += float(r['points'])
-                ranked = sorted(t_wk.items(), key=lambda x: x[1], reverse=True)
+                fl_driver = next((r['Driver']['driverId'] for r in res if r.get('FastestLap', {}).get('rank') == "1"), "")
+                t_wknd = {r['Constructor']['constructorId']: 0 for r in res}
+                for r in res:
+                    tid = r['Constructor']['constructorId']
+                    t_wknd[tid] += float(r['points'])
+                    # Add driver points to player
+                    for name, cfg in PLAYERS_CONFIG.items():
+                        if r['Driver']['driverId'] in cfg['drivers']:
+                            players[name]["driver_pts"] += float(r['points'])
+                
+                ranked = sorted(t_wknd.items(), key=lambda x: x[1], reverse=True)
                 top3 = [t[0] for t in ranked[:3]]
                 for n, cfg in PLAYERS_CONFIG.items():
-                    if fl in cfg['drivers']: players[n]["bonus_pts"] += 2
+                    if fl_driver in cfg['drivers']: players[n]["bonus_pts"] += 2
                     if cfg['constructor'] in top3: players[n]["bonus_pts"] += [3, 2, 1][top3.index(cfg['constructor'])]
                     if ranked and cfg['constructor'] == ranked[0][0]: players[n]["bonus_pts"] += 2
         except: pass
     return players
 
-# --- 5. SIDEBAR ---
+# --- 6. SIDEBAR ---
 with st.sidebar:
     st.markdown(f'<div><span class="pulse-light"></span><b>PIT WALL LIVE</b></div>', unsafe_allow_html=True)
     selected_year = st.selectbox("Year", [2026, 2025, 2024], index=0)
     
     next_race_obj, next_race_index = get_next_race_info(selected_year)
-    cal_data = fetch_api(str(selected_year))
     
+    # Season Progress
+    cal_data = fetch_api(str(selected_year))
     if cal_data:
         races_count = cal_data['MRData']['RaceTable']['Races']
         st.markdown(f'<div class="sb-header">SEASON PROGRESS</div>', unsafe_allow_html=True)
         st.write(f"Round {next_race_index} of {len(races_count)}")
         st.progress(next_race_index/len(races_count) if len(races_count) > 0 else 0)
 
+    # Leader Photo
     breakdown = calculate_season_breakdown(selected_year)
-    if breakdown:
-        sorted_fam = sorted(breakdown.items(), key=lambda x: (x[1]['driver_pts'] + x[1]['bonus_pts'] + x[1]['penalty']), reverse=True)
-        lead_player = sorted_fam[0][0]
-        lead_driver = PLAYERS_CONFIG[lead_player]['drivers'][0]
-        st.markdown(f'<div class="sb-header">CURRENT #1: {lead_player.upper()}</div>', unsafe_allow_html=True)
-        safe_st_image(DRIVER_IMAGES.get(lead_driver, ""), caption=f"Propelled by {lead_driver.upper()}", sidebar=True)
+    sorted_fam = sorted(breakdown.items(), key=lambda x: (x[1]['driver_pts'] + x[1]['bonus_pts'] + x[1]['penalty']), reverse=True)
+    lead_player = sorted_fam[0][0]
+    lead_driver = PLAYERS_CONFIG[lead_player]['drivers'][0]
+    st.markdown(f'<div class="sb-header">CURRENT #1: {lead_player.upper()}</div>', unsafe_allow_html=True)
+    safe_st_image(DRIVER_IMAGES.get(lead_driver, ""), caption=f"Champion: {lead_player}", sidebar=True)
 
+    # Oracle Predictions with Driver Details
     st.markdown(f'<div class="sb-header">ORACLE PREDICTIONS</div>', unsafe_allow_html=True)
     if next_race_obj:
         oracle = calculate_oracle_probabilities(next_race_obj, selected_year)
         for i in oracle[:3]:
-            st.write(f"{i['player']}: {i['prob']:.1f}%")
+            st.write(f"🔮 **{i['player']}** ({i['key_driver']})")
+            st.markdown(f"<span style='color:#e10600;'>Win Chance: {i['prob']:.1f}%</span>", unsafe_allow_html=True)
 
-# --- 6. MAIN UI ---
+    # Weekend Schedule (Practice Times)
+    st.markdown(f'<div class="sb-header">WEEKEND SCHEDULE</div>', unsafe_allow_html=True)
+    if next_race_obj:
+        st.write(f"**FP1**: {next_race_obj.get('FirstPractice', {}).get('date', 'TBA')}")
+        st.write(f"**Qualy**: {next_race_obj.get('Qualifying', {}).get('date', 'TBA')}")
+        st.write(f"**Race**: {next_race_obj.get('date')}")
+
+# --- 7. MAIN UI ---
 ticker_content = get_driver_standings_ticker(selected_year)
 st.markdown(f'<div class="ticker-wrap"><div class="ticker">{ticker_content} {ticker_content}</div></div>', unsafe_allow_html=True)
 
 st.title("🏎️ F1 FAMILY HUB")
-t_board, t_garage, t_next, t_grid, t_sessions, t_news = st.tabs(["🏆 CHAMPIONSHIP", "🛠️ GARAGES", "📅 RACE CALENDAR", "🏎️ THE GRID", "🏁 WEEKEND SESSIONS", "📰 NEWS"])
+t_board, t_garage, t_next, t_grid, t_news = st.tabs(["🏆 CHAMPIONSHIP", "🛠️ GARAGES", "📅 RACE CALENDAR", "🏎️ THE GRID", "📰 NEWS"])
 
 with t_board:
     st.header(f"{selected_year} Rankings")
@@ -285,7 +303,7 @@ with t_next:
             
         with c_d:
             w = get_weather(sel_race['Circuit']['Location']['lat'], sel_race['Circuit']['Location']['long'])
-            if w: st.markdown(f'<div class="f1-card">🌦️ {weather_icon(w["code"])}<br>{w["temp"]}°C | Rain: {w["rain"]}%</div>', unsafe_allow_html=True)
+            if w: st.markdown(f'<div class="f1-card"> {weather_icon(w["code"])}<br>{w["temp"]}°C | Rain: {w["rain"]}%</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="f1-card">📍 {sel_race["Circuit"]["Location"]["locality"]}<br>Date: {sel_race["date"]}</div>', unsafe_allow_html=True)
 
 with t_grid:
@@ -297,47 +315,7 @@ with t_grid:
             with col_d2: safe_st_image(DRIVER_IMAGES.get(data['drivers'][1], ""), width=180)
             with col_car: safe_st_image(get_img(data['car'], ""), width=280)
 
-# --- UPDATED TAB: WEEKEND SESSIONS ---
-with t_sessions:
-    st.header("🏁 SESSION UPDATES & STARTING GRID")
-    
-    # Allow user to pick which race weekend to view results for
-    if cal_data:
-        session_race_names = [f"R{r['round']}: {r['raceName']}" for r in races_list]
-        session_choice = st.selectbox("Select Weekend to View Sessions:", session_race_names, index=next_race_index)
-        round_num = session_choice.split(":")[0].replace("R", "")
-
-        col_q, col_g = st.columns(2)
-
-        with col_q:
-            st.subheader("Qualifying Shootout")
-            q_data = fetch_api(f"{selected_year}/{round_num}/qualifying")
-            if q_data and q_data['MRData']['RaceTable']['Races']:
-                q_results = q_data['MRData']['RaceTable']['Races'][0]['QualifyingResults']
-                q_list = [{"Pos": r['position'], "Driver": r['Driver']['familyName'], "Team": r['Constructor']['name'], "Q3": r.get('Q3', 'N/A')} for r in q_results]
-                st.dataframe(pd.DataFrame(q_list), use_container_width=True, hide_index=True)
-            else:
-                st.info("Qualifying data not yet available for this weekend.")
-
-        with col_g:
-            st.subheader("Final Starting Grid")
-            # The Starting Grid is pulled from the Qualifying rankings
-            if q_data and q_data['MRData']['RaceTable']['Races']:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                for r in q_results[:10]: # Top 10 focus
-                    st.write(f"**P{r['position']}** | {r['Driver']['familyName']} ({r['Constructor']['name']})")
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.info("Grid will be confirmed after Qualifying.")
-                
-        # Optional: Add Practice results if the API supports it
-        st.divider()
-        st.subheader("Practice Intelligence")
-        st.caption("Official Practice rankings usually populate here 1 hour after the session ends.")
-        # Some APIs don't provide FP1/2/3 results easily, so we show a placeholder for the strategy
-        st.write("📈 *Check the 'Oracle' in the sidebar for updated probabilities based on these session times!*")
-
-with t_news:
+with st.container():
     st.header("Latest Headlines")
     news_data = fetch_paddock_news()
     for item in news_data:
