@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. ASSETS & CONFIG ---
-st.set_page_config(page_title="Joubert F1 Hub", layout="wide", page_icon="🏎️")
-st_autorefresh(interval=30000, key="f1_refresh")
+st.set_page_config(page_title="F1 Family Hub", layout="wide", page_icon="🏎️")
+# Refresh every 5 minutes to keep results updated
+st_autorefresh(interval=300000, key="f1_refresh")
 
 # --- UNIVERSAL SAFE IMAGE DISPLAY FUNCTION ---
 def safe_st_image(img_path, caption="", width=None, sidebar=False):
@@ -26,11 +27,11 @@ def get_img(local_path, web_fallback):
         return local_path
     return web_fallback
 
-# Driver Images (Local Paths preserved)
+# Driver Images (Preserving your .webp/local paths)
 DRIVER_IMAGES = {
     "norris": get_img("imagesf1/norris.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"),
     "piastri": get_img("imagesf1/piastri.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png"),
-    "verstappen": get_img("imagesf1/verstappen.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png"),
+    "max_verstappen": get_img("imagesf1/max_verstappen.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png"),
     "hadjar": get_img("imagesf1/hadjar.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/I/ISAHAD01_Isack_Hadjar/isahad01.png"),
     "leclerc": get_img("imagesf1/leclerc.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png"),
     "hamilton": get_img("imagesf1/hamilton.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png"),
@@ -52,13 +53,6 @@ DRIVER_IMAGES = {
     "bottas": get_img("imagesf1/bottas.webp", "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png"),
 }
 
-# --- THE MISSING DICTIONARY RESTORED ---
-DRIVER_NUMBERS = {
-    "verstappen": 1, "perez": 11, "norris": 4, "piastri": 81, "leclerc": 16, "hamilton": 44, "russell": 63, "antonelli": 12,
-    "alonso": 14, "stroll": 18, "sainz": 55, "albon": 23, "gasly": 10, "colapinto": 43, "hulkenberg": 27, "bortoleto": 5, "ocon": 31,
-    "bearman": 87, "lawson": 30, "bottas": 77
-}
-
 TEAM_LOGOS = {
     "mclaren": get_img("imagesf1/mclaren.webp", "https://upload.wikimedia.org/wikipedia/en/thumb/6/66/McLaren_Racing_logo.svg/512px-McLaren_Racing_logo.svg.png"),
     "red_bull": get_img("imagesf1/red_bull.webp", "https://upload.wikimedia.org/wikipedia/en/thumb/1/15/Red_Bull_Racing_logo.svg/512px-Red_Bull_Racing_logo.svg.png"),
@@ -75,7 +69,7 @@ TEAM_LOGOS = {
 
 FULL_GRID_2026 = {
     "McLaren": {"drivers": ["norris", "piastri"], "car": "imagesf1/mclaren.webp"},
-    "Red Bull": {"drivers": ["verstappen", "hadjar"], "car": "imagesf1/red_bull.webp"},
+    "Red Bull": {"drivers": ["max_verstappen", "hadjar"], "car": "imagesf1/red_bull.webp"},
     "Ferrari": {"drivers": ["leclerc", "hamilton"], "car": "imagesf1/ferrari.webp"},
     "Mercedes": {"drivers": ["russell", "antonelli"], "car": "imagesf1/mercedes.webp"},
     "Aston Martin": {"drivers": ["alonso", "stroll"], "car": "imagesf1/aston_martin.webp"},
@@ -88,14 +82,13 @@ FULL_GRID_2026 = {
 }
 
 PLAYERS_CONFIG = {
-    "Richie": {"drivers": ["verstappen", "perez"], "constructor": "audi", "penalty": 0},
+    "Richie": {"drivers": ["max_verstappen", "perez"], "constructor": "audi", "penalty": 0},
     "Rickster": {"drivers": ["bottas", "leclerc"], "constructor": "aston_martin", "penalty": -5},
     "Yoshi": {"drivers": ["norris", "stroll"], "constructor": "ferrari", "penalty": -25},
     "Trip": {"drivers": ["lawson", "hadjar"], "constructor": "red_bull", "penalty": -5},
     "Josh": {"drivers": ["piastri", "hulkenberg"], "constructor": "haas", "penalty": 0},
     "Ruben": {"drivers": ["antonelli", "albon"], "constructor": "mercedes", "penalty": -5},
     "Clive": {"drivers": ["sainz", "russell"], "constructor": "racing_bulls", "penalty": 0},
-    "Andy": {"drivers": ["hamilton", "bearman"], "constructor": "mclaren", "penalty": 0},
 }
 
 # --- 2. THE CSS ---
@@ -129,16 +122,6 @@ def fetch_api(endpoint):
         return r.json() if r.status_code == 200 else None
     except: return None
 
-def fetch_telemetry_data(driver_number):
-    try:
-        session = requests.get("https://api.openf1.org/v1/sessions?latest=true").json()
-        if not session: return None
-        s_key = session[0]['session_key']
-        tele_url = f"https://api.openf1.org/v1/car_data?driver_number={driver_number}&session_key={s_key}&limit=1"
-        data = requests.get(tele_url).json()
-        return data[0] if data else None
-    except: return None
-
 @st.cache_data(ttl=3600)
 def get_weather(lat, lon):
     try:
@@ -165,7 +148,7 @@ def get_driver_standings_ticker(year):
     try:
         standings = data['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']
         return "".join([f'<span class="ticker-item"><span class="ticker-rank">{d["position"]}.</span> {d["Driver"]["familyName"]} ({d["points"]} PTS)</span>' for d in standings])
-    except: return '<span class="ticker-item">Awaiting Season Start</span>'
+    except: return '<span class="ticker-item">Awaiting Season Results</span>'
 
 def get_next_race_info(year):
     data = fetch_api(f"{year}")
@@ -224,38 +207,19 @@ def calculate_season_breakdown(year):
         except: pass
     return players
 
-def calculate_projected(year):
-    data = fetch_api(f"{year}/last/results")
-    if not data: return None
-    try:
-        race = data['MRData']['RaceTable']['Races'][0]
-        res = race['Results']
-        scores = {n: 0 for n in PLAYERS_CONFIG.keys()}
-        d_pts = {r['Driver']['driverId']: float(r['points']) for r in res}
-        t_wk = {r['Constructor']['constructorId']: 0 for r in res}
-        for r in res: t_wk[r['Constructor']['constructorId']] += float(r['points'])
-        ranked = sorted(t_wk.items(), key=lambda x: x[1], reverse=True)
-        top3 = [t[0] for t in ranked[:3]]
-        for n, cfg in PLAYERS_CONFIG.items():
-            scores[n] = sum([d_pts.get(d, 0) for d in cfg['drivers']])
-            if cfg['constructor'] in top3: scores[n] += [3, 2, 1][top3.index(cfg['constructor'])]
-            if ranked and cfg['constructor'] == ranked[0][0]: scores[n] += 2
-        return {"scores": scores, "name": race['raceName']}
-    except: return None
-
 # --- 5. SIDEBAR ---
 with st.sidebar:
     st.markdown(f'<div><span class="pulse-light"></span><b>PIT WALL LIVE</b></div>', unsafe_allow_html=True)
     selected_year = st.selectbox("Year", [2026, 2025, 2024], index=0)
     
     next_race_obj, next_race_index = get_next_race_info(selected_year)
-    
     cal_data = fetch_api(str(selected_year))
+    
     if cal_data:
-        races = cal_data['MRData']['RaceTable']['Races']
+        races_count = cal_data['MRData']['RaceTable']['Races']
         st.markdown(f'<div class="sb-header">SEASON PROGRESS</div>', unsafe_allow_html=True)
-        st.write(f"Round {next_race_index} of {len(races)}")
-        st.progress(next_race_index/len(races) if len(races) > 0 else 0)
+        st.write(f"Round {next_race_index} of {len(races_count)}")
+        st.progress(next_race_index/len(races_count) if len(races_count) > 0 else 0)
 
     breakdown = calculate_season_breakdown(selected_year)
     if breakdown:
@@ -263,7 +227,7 @@ with st.sidebar:
         lead_player = sorted_fam[0][0]
         lead_driver = PLAYERS_CONFIG[lead_player]['drivers'][0]
         st.markdown(f'<div class="sb-header">CURRENT #1: {lead_player.upper()}</div>', unsafe_allow_html=True)
-        safe_st_image(DRIVER_IMAGES.get(lead_driver, ""), caption=f"Champion: {lead_player}", sidebar=True)
+        safe_st_image(DRIVER_IMAGES.get(lead_driver, ""), caption=f"Propelled by {lead_driver.upper()}", sidebar=True)
 
     st.markdown(f'<div class="sb-header">ORACLE PREDICTIONS</div>', unsafe_allow_html=True)
     if next_race_obj:
@@ -275,8 +239,8 @@ with st.sidebar:
 ticker_content = get_driver_standings_ticker(selected_year)
 st.markdown(f'<div class="ticker-wrap"><div class="ticker">{ticker_content} {ticker_content}</div></div>', unsafe_allow_html=True)
 
-st.title("🏎️ Joubert F1 HUB")
-t_board, t_garage, t_next, t_grid, t_live, t_news = st.tabs(["🏆 CHAMPIONSHIP", "🛠️ GARAGES", "📅 RACE CALENDAR", "🏎️ THE GRID", "📡 LIVE TELEMETRY", "📰 NEWS"])
+st.title("🏎️ F1 FAMILY HUB")
+t_board, t_garage, t_next, t_grid, t_sessions, t_news = st.tabs(["🏆 CHAMPIONSHIP", "🛠️ GARAGES", "📅 RACE CALENDAR", "🏎️ THE GRID", "🏁 WEEKEND SESSIONS", "📰 NEWS"])
 
 with t_board:
     st.header(f"{selected_year} Rankings")
@@ -293,12 +257,12 @@ with t_garage:
     st.header("Player Garages")
     for player, cfg in PLAYERS_CONFIG.items():
         with st.expander(f"🛠️ GARAGE BAY: {player.upper()}"):
-            col_d1, col_d2, col_chassis = st.columns([1, 1, 2])
-            with col_d1: safe_st_image(DRIVER_IMAGES.get(cfg['drivers'][0], ""), caption=f"D1: {cfg['drivers'][0].upper()}")
-            with col_d2: safe_st_image(DRIVER_IMAGES.get(cfg['drivers'][1], ""), caption=f"D2: {cfg['drivers'][1].upper()}")
+            col_d1, col_d2, col_chassis = st.columns([1, 1, 1.2])
+            with col_d1: safe_st_image(DRIVER_IMAGES.get(cfg['drivers'][0], ""), caption=f"D1: {cfg['drivers'][0].upper()}", width=180)
+            with col_d2: safe_st_image(DRIVER_IMAGES.get(cfg['drivers'][1], ""), caption=f"D2: {cfg['drivers'][1].upper()}", width=180)
             with col_chassis:
                 team_key = next((k for k in FULL_GRID_2026 if k.lower().replace("_"," ") == cfg['constructor'].lower().replace("_"," ")), None)
-                if team_key: safe_st_image(get_img(FULL_GRID_2026[team_key]['car'], ""), caption=f"{team_key} Livery")
+                if team_key: safe_st_image(get_img(FULL_GRID_2026[team_key]['car'], ""), caption=f"{team_key} Livery", width=280)
 
 with t_next:
     if cal_data:
@@ -316,80 +280,62 @@ with t_next:
         c_m, c_d = st.columns([2, 1])
         with c_m: 
             circuit_id = sel_race['Circuit']['circuitId']
-            local_map = f"imagesf1maps/{circuit_id}.png"
-            web_map = f"https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/circuit-maps-16x9/{circuit_id}.png"
-            final_map_path = get_img(local_map, web_map)
-            safe_st_image(final_map_path, caption=f"Circuit ID: {circuit_id}") 
+            final_map = get_img(f"imagesf1maps/{circuit_id}.png", f"https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/circuit-maps-16x9/{circuit_id}.png")
+            safe_st_image(final_map, caption=f"Circuit: {sel_race['Circuit']['circuitName']}") 
             
         with c_d:
             w = get_weather(sel_race['Circuit']['Location']['lat'], sel_race['Circuit']['Location']['long'])
             if w: st.markdown(f'<div class="f1-card">🌦️ {weather_icon(w["code"])}<br>{w["temp"]}°C | Rain: {w["rain"]}%</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="f1-card">📍 {sel_race["Circuit"]["Location"]["locality"]}, {sel_race["Circuit"]["Location"]["country"]}<br>Date: {sel_race["date"]}</div>', unsafe_allow_html=True)
-            
-            history = fetch_api(f"{int(selected_year)-1}/circuits/{circuit_id}/results")
-            if history:
-                try:
-                    podium = history['MRData']['RaceTable']['Races'][0]['Results'][:3]
-                    st.markdown('<div class="f1-card"><h4>PREVIOUS PODIUM</h4>', unsafe_allow_html=True)
-                    for r in podium:
-                        st.write(f"{r['position']}. {r['Driver']['familyName']} ({r['Constructor']['name']})")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                except: st.info("Historical data not available.")
+            st.markdown(f'<div class="f1-card">📍 {sel_race["Circuit"]["Location"]["locality"]}<br>Date: {sel_race["date"]}</div>', unsafe_allow_html=True)
 
-# --- UPDATED GRID UI (MATCHES GARAGE STYLE) ---
 with t_grid:
-    st.header("The 2026 World Championship Grid")
-    
-    # Loop through all 11 teams for 2026
+    st.header("The 2026 Grid")
     for team, data in FULL_GRID_2026.items():
         with st.expander(f"🏎️ {team.upper()} ENTRY"):
-            # Using the same [1, 1, 1.2] ratio as the Garage tab
             col_d1, col_d2, col_car = st.columns([1, 1, 1.2])
-            
-            with col_d1:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                d1_id = data['drivers'][0]
-                # Consistency: width=180 for driver headshots
-                safe_st_image(DRIVER_IMAGES.get(d1_id, ""), caption=f"DRIVER: {d1_id.replace('_',' ').upper()}", width=180)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-            with col_d2:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                d2_id = data['drivers'][1]
-                safe_st_image(DRIVER_IMAGES.get(d2_id, ""), caption=f"DRIVER: {d2_id.replace('_',' ').upper()}", width=180)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-            with col_car:
-                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
-                st.write(f"#### {team.upper()} CHALLENGER")
-                # Car Image (Local check with Web Fallback)
-                car_img_path = get_img(data['car'], "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/team-car-photos-16x9/2024/mclaren.png")
-                # Consistency: width=280 for the car livery
-                safe_st_image(car_img_path, caption=f"2026 Livery", width=280)
-                st.markdown('</div>', unsafe_allow_html=True)
+            with col_d1: safe_st_image(DRIVER_IMAGES.get(data['drivers'][0], ""), width=180)
+            with col_d2: safe_st_image(DRIVER_IMAGES.get(data['drivers'][1], ""), width=180)
+            with col_car: safe_st_image(get_img(data['car'], ""), width=280)
 
-with t_live:
-    st.header("📡 LIVE PIT WALL TELEMETRY")
-    col_sel, col_stat = st.columns([1, 2])
-    with col_sel:
-        target_driver = st.selectbox("Select Driver to Spy On:", list(DRIVER_NUMBERS.keys()))
-        d_num = DRIVER_NUMBERS[target_driver]
-        safe_st_image(DRIVER_IMAGES.get(target_driver, ""), width=200)
-    tele = fetch_telemetry_data(d_num)
-    if tele:
-        with col_stat:
-            st.markdown(f'<div class="f1-card"><h3>LIVE DATA: {target_driver.upper()}</h3>', unsafe_allow_html=True)
-            m1, m2, m3 = st.columns(3)
-            m1.metric("SPEED", f"{tele['speed']} km/h")
-            m2.metric("GEAR", tele['n_gear'])
-            m3.metric("RPM", tele['rpm'])
-            st.write("THROTTLE %")
-            st.progress(int(tele['throttle']))
-            st.write("BRAKE FORCE")
-            st.progress(100 if tele['brake'] > 0 else 0)
-            st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.info(f"Awaiting connection to car #{d_num}...")
+# --- UPDATED TAB: WEEKEND SESSIONS ---
+with t_sessions:
+    st.header("🏁 SESSION UPDATES & STARTING GRID")
+    
+    # Allow user to pick which race weekend to view results for
+    if cal_data:
+        session_race_names = [f"R{r['round']}: {r['raceName']}" for r in races_list]
+        session_choice = st.selectbox("Select Weekend to View Sessions:", session_race_names, index=next_race_index)
+        round_num = session_choice.split(":")[0].replace("R", "")
+
+        col_q, col_g = st.columns(2)
+
+        with col_q:
+            st.subheader("Qualifying Shootout")
+            q_data = fetch_api(f"{selected_year}/{round_num}/qualifying")
+            if q_data and q_data['MRData']['RaceTable']['Races']:
+                q_results = q_data['MRData']['RaceTable']['Races'][0]['QualifyingResults']
+                q_list = [{"Pos": r['position'], "Driver": r['Driver']['familyName'], "Team": r['Constructor']['name'], "Q3": r.get('Q3', 'N/A')} for r in q_results]
+                st.dataframe(pd.DataFrame(q_list), use_container_width=True, hide_index=True)
+            else:
+                st.info("Qualifying data not yet available for this weekend.")
+
+        with col_g:
+            st.subheader("Final Starting Grid")
+            # The Starting Grid is pulled from the Qualifying rankings
+            if q_data and q_data['MRData']['RaceTable']['Races']:
+                st.markdown('<div class="f1-card">', unsafe_allow_html=True)
+                for r in q_results[:10]: # Top 10 focus
+                    st.write(f"**P{r['position']}** | {r['Driver']['familyName']} ({r['Constructor']['name']})")
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.info("Grid will be confirmed after Qualifying.")
+                
+        # Optional: Add Practice results if the API supports it
+        st.divider()
+        st.subheader("Practice Intelligence")
+        st.caption("Official Practice rankings usually populate here 1 hour after the session ends.")
+        # Some APIs don't provide FP1/2/3 results easily, so we show a placeholder for the strategy
+        st.write("📈 *Check the 'Oracle' in the sidebar for updated probabilities based on these session times!*")
 
 with t_news:
     st.header("Latest Headlines")
