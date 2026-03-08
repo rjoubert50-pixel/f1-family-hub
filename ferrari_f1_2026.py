@@ -235,14 +235,31 @@ st.title("🏎️ F1 FAMILY HUB")
 t_board, t_garage, t_next, t_grid, t_news = st.tabs(["🏆 CHAMPIONSHIP", "🛠️ GARAGES", "📅 RACE CALENDAR", "🏎️ THE GRID", "📰 NEWS"])
 
 with t_board:
-    st.header(f"{selected_year} Rankings")
+    st.header(f"{selected_year} World Rankings")
+    
+    # Check what the API actually has
+    r_check = fetch_api(f"{selected_year}/results")
+    processed_races = 0
+    if r_check and r_check['MRData']['RaceTable']['Races']:
+        processed_races = len(r_check['MRData']['RaceTable']['Races'])
+    
+    # Visual Status Light
+    if processed_races > 0:
+        st.success(f"✅ Data Synced: Results for {processed_races} race(s) are live.")
+    else:
+        st.warning("⏳ Awaiting Official FIA Results: The API has not published the latest race data yet (usually takes 2-4 hours).")
+
+    # The actual table
+    breakdown = calculate_season_breakdown(selected_year)
     rows = [{"Player": n, "Driver Pts": int(p["driver_pts"]), "Bonus Pts": int(p["bonus_pts"]), "Penalty": int(p["penalty"]), "TOTAL": int(p["driver_pts"] + p["bonus_pts"] + p["penalty"])} for n, p in breakdown.items()]
     df = pd.DataFrame(rows).sort_values("TOTAL", ascending=False)
+    
     if len(df) >= 2:
         gap = df.iloc[0]['TOTAL'] - df.iloc[1]['TOTAL']
         leader = df.iloc[0]['Player']
         if gap > 25: st.info(f"🏆 **DOMINANT LEAD:** {leader} is pulling away! Gap: {gap} pts")
         elif gap < 10 and df.iloc[0]['TOTAL'] > 0: st.warning(f"⚔️ **CLOSE FIGHT:** {leader} is under pressure! Gap: only {gap} pts")
+    
     st.dataframe(df, use_container_width=True, hide_index=True, column_config={"TOTAL": st.column_config.NumberColumn("TOTAL SCORE 🏆", format="%d")})
 
 with t_garage:
