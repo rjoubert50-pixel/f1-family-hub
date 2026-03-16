@@ -3,3 +3,4 @@ pandas
 requests
 feedparser
 streamlit-autorefresh
+plotly
