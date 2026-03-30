@@ -189,14 +189,46 @@ with tabs[0]:
                     chart_rows.append({"Round": f"R{r}", "Player": n, "Points": cur})
             st.plotly_chart(px.line(pd.DataFrame(chart_rows), x="Round", y="Points", color="Player", template="plotly_dark"), use_container_width=True)
 
+# --- UPDATED HISTORY TAB (WHITE DATA FRAME LOOK) ---
 with tabs[1]:
     if history_ledger:
-        h_round = st.selectbox("Select Race:", sorted(history_ledger.keys(), reverse=True))
+        h_round = st.selectbox("Select Race to Review:", sorted(history_ledger.keys(), reverse=True))
         h_res = fetch_api(f"{selected_year}/{h_round}/results")
+        
         if h_res:
-            race_m = h_res['MRData']['RaceTable']['Races'][0]
-            st.markdown(f'<div class="f1-card"><h3>{race_m["raceName"]} Breakdown</h3></div>', unsafe_allow_html=True)
-            st.table(pd.DataFrame([{"Player": n, "Weekend Pts": int(p)} for n, p in history_ledger[h_round].items()]).sort_values("Weekend Pts", ascending=False))
+            race_meta = h_res['MRData']['RaceTable']['Races'][0]
+            st.markdown(f'<div class="f1-card"><h3>🏁 {race_meta["raceName"]} Breakdown</h3></div>', unsafe_allow_html=True)
+            
+            col_a, col_b = st.columns([1.5, 1])
+            
+            with col_a:
+                st.write("**Family Round Standings**")
+                # Convert the data into a list for the dataframe
+                h_rows = []
+                for n, pts in history_ledger[h_round].items():
+                    # Adding the constructor name for extra detail
+                    constructor = PLAYERS_CONFIG[n]['constructor'].upper()
+                    h_rows.append({"Player": n, "Chassis": constructor, "Points Gained": int(pts)})
+                
+                h_df = pd.DataFrame(h_rows).sort_values("Points Gained", ascending=False)
+                
+                # Using st.dataframe for the "White Background" clean look
+                st.dataframe(
+                    h_df, 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config={
+                        "Points Gained": st.column_config.NumberColumn("Points Gained ⚡", format="%d")
+                    }
+                )
+                
+            with col_b:
+                st.write("**Official Podium**")
+                podium = [{"Pos": r['position'], "Driver": r['Driver']['familyName']} for r in race_meta['Results'][:3]]
+                # Also changed this to dataframe for consistency
+                st.dataframe(pd.DataFrame(podium), use_container_width=True, hide_index=True)
+    else:
+        st.info("Season history will appear here once the first race data is synced!")
 
 # --- SAFE SPEC VIEW FUNCTION ---
 def draw_spec_view(data, title, is_grid=False):
