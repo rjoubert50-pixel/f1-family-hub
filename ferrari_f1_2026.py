@@ -31,7 +31,7 @@ def get_img(local_path, web_fallback="https://media.formula1.com/content/dam/fom
 DRIVER_IMAGES = {
     "norris": get_img("imagesf1/norris.webp"),
     "piastri": get_img("imagesf1/piastri.webp"),
-    "max_verstappen": get_img("imagesf1/max_verstappen.webp"),
+    "max_verstappen": get_img("imagesf1/verstappen.webp"),
     "hadjar": get_img("imagesf1/hadjar.webp"),
     "leclerc": get_img("imagesf1/leclerc.webp"),
     "hamilton": get_img("imagesf1/hamilton.webp"),
@@ -55,7 +55,7 @@ DRIVER_IMAGES = {
 
 FULL_GRID_2026 = {
     "McLaren": {"drivers": ["norris", "piastri"], "car": "imagesf1/mclaren.jpg"},
-    "Red Bull": {"drivers": ["max_verstappen", "hadjar"], "car": "imagesf1/red_bull.jpg"},
+    "Red Bull": {"drivers": ["verstappen", "hadjar"], "car": "imagesf1/red_bull.jpg"},
     "Ferrari": {"drivers": ["leclerc", "hamilton"], "car": "imagesf1/ferrari.jpg"},
     "Mercedes": {"drivers": ["russell", "antonelli"], "car": "imagesf1/mercedes.jpg"},
     "Aston Martin": {"drivers": ["alonso", "stroll"], "car": "imagesf1/aston_martin.jpg"},
@@ -68,7 +68,7 @@ FULL_GRID_2026 = {
 }
 
 PLAYERS_CONFIG = {
-    "Richie": {"drivers": ["max_verstappen", "perez"], "constructor": "audi", "penalty": 0},
+    "Richie": {"drivers": ["verstappen", "perez"], "constructor": "audi", "penalty": 0},
     "Rickster": {"drivers": ["bottas", "leclerc"], "constructor": "aston_martin", "penalty": -5},
     "Yoshi": {"drivers": ["norris", "stroll"], "constructor": "ferrari", "penalty": -25},
     "Trip": {"drivers": ["lawson", "hadjar"], "constructor": "red_bull", "penalty": -5},
